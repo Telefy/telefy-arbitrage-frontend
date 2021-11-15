@@ -1,0 +1,209 @@
+<html>
+
+<head>
+  <style>
+    table {
+      width: 50%;
+    }
+
+    table,
+    th,
+    td {
+      border: 1px solid black;
+    }
+
+    td {
+      word-wrap: break-word;
+    }
+  </style>
+  <title>Exchanges</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+  <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+</head>
+
+<body>
+  <div class="container-fluid bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a class="navbar-brand" href="#">
+        <img src="http://telefy.finance/assets/Images/telefy-dark1.svg" width="150" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item active">
+            <a class="nav-link" href="#">Home </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" id="clearall">Features</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+  <div class="container mt-4">
+    <h2>Pairs</h2>
+    <hr />
+    <p><button onclick="sortTable()">Sort</button></p>
+    <table id="example" style="width:100%" class="table table-striped table-dark text-center">
+      <thead>
+        <tr>
+          <th>Pair Sysmbol</th>
+          <th>Uniswap Price</th>
+          <th>Sushiswap Price</th>
+          <th>Arbitrage %</th>
+          <th>Price Impact %</th>
+          <th>Volume</th>
+          <th>Liquidity</th>
+
+        </tr>
+      </thead>
+      <tbody id="pricedata"></tbody>
+    </table>
+  </div>
+</body>
+<script src="jquery-3.5.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+
+  function sortTable() {
+    var table, rows, switching, i, x, y, shouldSwitch;
+    table = document.getElementById("example");
+    switching = true;
+    while (switching) {
+      switching = false;
+      rows = table.rows;
+      for (i = 1; i < (rows.length - 1); i++) {
+        shouldSwitch = false;
+        x = rows[i].getElementsByTagName("TD")[3];
+        y = rows[i + 1].getElementsByTagName("TD")[3];
+        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+          shouldSwitch = true;
+          break;
+        }
+      }
+      if (shouldSwitch) {
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
+      }
+    }
+  }
+
+  $(document).ready(function () {
+
+    const socket = io("ws://localhost:3000", {
+      reconnectionDelayMax: 10000,
+      auth: {
+        token: "123"
+      },
+      query: {
+        "client": "success"
+      }
+    });
+
+    setTimeout(function () {
+
+      $.ajax({
+        type: 'GET',
+        url: "http://localhost:3000/getPrice",
+        success: function (data) {
+          var pricedata = '';
+          //  socket.emit('client-info',{});
+          for (var i = 0; i < data.length; i++) {
+
+            console.log(data[i])
+            pricedata += `<tr id='${data[i].exchanges[0].pairtoken}'>
+                      <td>${data[i].symbol}</td>
+                      <td class='uniswap1-${data[i].exchanges[0].pairtoken}'>${data[i].exchanges[0].price1}</td>
+                      <td class='sushiswap1-${data[i].exchanges[1].pairtoken}'>${data[i].exchanges[1].price1}</td>
+                      <td class='uniswapPer-${data[i].exchanges[0].pairtoken}'></td>
+                      <td class='uniswapImpPer-${data[i].exchanges[0].pairtoken}'></td>
+                      <td class='uniswapV-${data[i].exchanges[0].pairtoken}'></td>
+                      <td class='uniswapL-${data[i].exchanges[0].pairtoken}'></td>
+                      </tr>`
+            socket.on(data[i].exchanges[0].pairtoken, function (msg) {
+              console.log(msg,"---uni")
+              $(`.uniswapV-${msg.id}`).html('')
+              $(`.uniswapPer-${msg.id}`).html('')
+              $(`.uniswapL-${msg.id}`).html('')
+              $(`.uniswap1-${msg.id}`).html('')
+              $(`.uniswap1-${msg.id}`).html(msg.token1Price)
+              $(`.uniswapV-${msg.id}`).html(msg.volumeUSD)
+              $(`.uniswapL-${msg.id}`).html(msg.reserveUSD)
+
+              let sushiPrice = $(`.sushiswap1-${msg.sushipairId}`).html()
+              let arbitragePercent = -1;
+              if (sushiPrice) {
+                let diff = msg.token1Price - sushiPrice;
+                arbitragePercent = (diff / msg.token1Price) * 100;
+              }
+              if (arbitragePercent >= 2) {
+                $(`.uniswapPer-${msg.id}`).html(`<img src="https://sushi.com/static/media/logo.dec926df.png" width="20"/>${arbitragePercent}`)
+                $(`#${msg.id}`).show()
+              } else if (-2 >= arbitragePercent) {
+                let arbitragePercent1 = arbitragePercent.toString()
+                arbitragePercent = arbitragePercent1.replace("-", "")
+                $(`.uniswapPer-${msg.id}`).html(`<img src="https://v2.info.uniswap.org/static/media/logo_white.edb44e56.svg" width="20"/>${arbitragePercent}`)
+                var token0  = Number(msg.token0.totalLiquidity)
+                var token1  = Number(msg.token1.totalLiquidity)
+                var [token_A, token_b] = [token0,token1];
+                console.log(token_A,"---A")
+                console.log(token_b,"---B")
+                var input_value = 1000;
+                var contant_product = token_A * token_b
+                var new_token_A = (input_value + token_A);
+                var ethbalance = contant_product / new_token_A;
+                var receivedEth = token_b - ethbalance;
+                var tokenAPerTokenB = input_value/receivedEth;
+                var marketPrice = token_A/token_b;
+                var priceimpact = ((marketPrice-tokenAPerTokenB)/marketPrice)*100;
+                $(`.uniswapImpPer-${msg.id}`).html(priceimpact)
+                $(`#${msg.id}`).show()
+              } else {
+                $(`#${msg.id}`).hide()
+              }
+            });
+
+            socket.on(data[i].exchanges[1].pairtoken, function (msg) {
+              $(`.sushiswap1-${msg.id}`).html('')
+              $(`.sushiswap1-${msg.id}`).html(msg.token1Price)
+
+
+              let uniPrice = $(`.uniswap1-${msg.unipairId}`).html()
+              let arbitragePercent = -1;
+              if (uniPrice) {
+                let diff = uniPrice - msg.token1Price;
+                arbitragePercent = (diff / uniPrice) * 100;
+              }
+
+              if (arbitragePercent >= 2) {
+                $(`.uniswapPer-${msg.id}`).html(`<img src="https://sushi.com/static/media/logo.dec926df.png" width="20"/>${arbitragePercent}`)
+                $(`#${msg.unipairId}`).show()
+              } else if (-2 >= arbitragePercent) {
+                let arbitragePercent2 = arbitragePercent.toString()
+                arbitragePercent = arbitragePercent2.replace("-", "")
+                $(`.uniswapPer-${msg.id}`).html(`<img src="https://v2.info.uniswap.org/static/media/logo_white.edb44e56.svg" width="20"/>${arbitragePercent}`)
+                $(`#${msg.unipairId}`).show()
+              } else {
+                $(`#${msg.unipairId}`).hide()
+              }
+
+            });
+          }
+          $('#pricedata').html('')
+          $('#pricedata').append(pricedata)
+        }
+      });
+
+
+
+    }, 3000)
+  });
+</script>
+
+</html>

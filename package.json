@@ -1,0 +1,34 @@
+{
+    "name": "uniswap_price",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@sushiswap/sdk": "^5.0.0-canary.87",
+        "@truffle/hdwallet-provider": "^1.6.0",
+        "@uniswap/sdk": "^3.0.3",
+        "@uniswap/v2-sdk": "^3.0.1",
+        "@web3-react/core": "^6.1.9",
+        "big.js": "^6.1.1",
+        "bn.js": "^5.2.0",
+        "dotenv": "^8.6.0",
+        "eip-712": "^0.4.3",
+        "express": "^4.16.4",
+        "http": "0.0.1-security",
+        "mysql": "^2.18.1",
+        "path-posix": "^1.0.0",
+        "react": "^17.0.2",
+        "socket.io": "^4.2.0",
+        "socket.io-client": "^4.2.0",
+        "sushiswap-api": "^1.1.1",
+        "web3": "^1.5.1",
+        "web3-react": "^5.0.5"
+    }
+}
