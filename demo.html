@@ -53,14 +53,9 @@
     <table id="example" style="width:100%" class="table table-striped table-dark text-center">
       <thead>
         <tr>
-          <th>Pair Sysmbol</th>
-          <th>Uniswap Price</th>
-          <th>Sushiswap Price</th>
-          <th>Arbitrage %</th>
-          <th>Price Impact %</th>
-          <th>Volume</th>
-          <th>Liquidity</th>
-
+          <th>Sysmbol</th>
+          <th>Exchanges</th>
+          <th>Arbitrage Ranges</th>
         </tr>
       </thead>
       <tbody id="pricedata"></tbody>
@@ -116,85 +111,45 @@
           //  socket.emit('client-info',{});
           for (var i = 0; i < data.length; i++) {
 
-            console.log(data[i])
-            pricedata += `<tr id='${data[i].exchanges[0].pairtoken}'>
-                      <td>${data[i].symbol}</td>
-                      <td class='uniswap1-${data[i].exchanges[0].pairtoken}'>${data[i].exchanges[0].price1}</td>
-                      <td class='sushiswap1-${data[i].exchanges[1].pairtoken}'>${data[i].exchanges[1].price1}</td>
-                      <td class='uniswapPer-${data[i].exchanges[0].pairtoken}'></td>
-                      <td class='uniswapImpPer-${data[i].exchanges[0].pairtoken}'></td>
-                      <td class='uniswapV-${data[i].exchanges[0].pairtoken}'></td>
-                      <td class='uniswapL-${data[i].exchanges[0].pairtoken}'></td>
-                      </tr>`
-            socket.on(data[i].exchanges[0].pairtoken, function (msg) {
-              console.log(msg,"---uni")
-              $(`.uniswapV-${msg.id}`).html('')
-              $(`.uniswapPer-${msg.id}`).html('')
-              $(`.uniswapL-${msg.id}`).html('')
-              $(`.uniswap1-${msg.id}`).html('')
-              $(`.uniswap1-${msg.id}`).html(msg.token1Price)
-              $(`.uniswapV-${msg.id}`).html(msg.volumeUSD)
-              $(`.uniswapL-${msg.id}`).html(msg.reserveUSD)
-
-              let sushiPrice = $(`.sushiswap1-${msg.sushipairId}`).html()
-              let arbitragePercent = -1;
-              if (sushiPrice) {
-                let diff = msg.token1Price - sushiPrice;
-                arbitragePercent = (diff / msg.token1Price) * 100;
+            var tokenIds = data[i].token0.toString()+data[i].token1.toString();
+            pricedata += `<tr>
+                          <th rowspan='${data[i].exchanges.length}'>${data[i].symbol}</th>`
+            
+            for(var j =0;  j < data[i].exchanges.length; j++){
+              if(j != 0){
+                pricedata += `<tr>`    
               }
-              if (arbitragePercent >= 2) {
-                $(`.uniswapPer-${msg.id}`).html(`<img src="https://sushi.com/static/media/logo.dec926df.png" width="20"/>${arbitragePercent}`)
-                $(`#${msg.id}`).show()
-              } else if (-2 >= arbitragePercent) {
-                let arbitragePercent1 = arbitragePercent.toString()
-                arbitragePercent = arbitragePercent1.replace("-", "")
-                $(`.uniswapPer-${msg.id}`).html(`<img src="https://v2.info.uniswap.org/static/media/logo_white.edb44e56.svg" width="20"/>${arbitragePercent}`)
-                var token0  = Number(msg.token0.totalLiquidity)
-                var token1  = Number(msg.token1.totalLiquidity)
-                var [token_A, token_b] = [token0,token1];
-                console.log(token_A,"---A")
-                console.log(token_b,"---B")
-                var input_value = 1000;
-                var contant_product = token_A * token_b
-                var new_token_A = (input_value + token_A);
-                var ethbalance = contant_product / new_token_A;
-                var receivedEth = token_b - ethbalance;
-                var tokenAPerTokenB = input_value/receivedEth;
-                var marketPrice = token_A/token_b;
-                var priceimpact = ((marketPrice-tokenAPerTokenB)/marketPrice)*100;
-                $(`.uniswapImpPer-${msg.id}`).html(priceimpact)
-                $(`#${msg.id}`).show()
-              } else {
-                $(`#${msg.id}`).hide()
+              pricedata += `<th rowspan='1'>${data[i].exchanges[j].name}</th>`;            
+              pricedata += `<th id='${tokenIds}_${data[i].exchanges[j].name}'></th>
+              </tr>`
+            }
+
+            console.log(tokenIds,"---first tokn----")
+            socket.on(data[i].token0.toString()+data[i].token1.toString(), function (msg) {
+              if(msg.length > 0){
+                var tokens;
+                
+                for(var u=0; u < msg.length; u++){
+                  console.log(msg[u].tokenIds,": ",msg)
+                  if(Object.keys(msg[u]).length > 0){                    
+                    // $(`#${msg[u].tokenIds}`).html('')
+                    let exchangeName = msg[u].exchange;
+                    let data = '';
+                    tokens = msg[u].tokenIds                    
+                    for(var p=0; p < msg[u][exchangeName].length;p++){
+                      if(msg[u][exchangeName][p].arbitRange !=''){
+                        data += `${msg[u][exchangeName][p].exchage} : ${msg[u][exchangeName][p].arbitRange} <br>`
+                        $(`#${tokens}_${exchangeName}`).html(data)
+                      }
+                    }
+                  }
+                                      
+                }
               }
-            });
-
-            socket.on(data[i].exchanges[1].pairtoken, function (msg) {
-              $(`.sushiswap1-${msg.id}`).html('')
-              $(`.sushiswap1-${msg.id}`).html(msg.token1Price)
-
-
-              let uniPrice = $(`.uniswap1-${msg.unipairId}`).html()
-              let arbitragePercent = -1;
-              if (uniPrice) {
-                let diff = uniPrice - msg.token1Price;
-                arbitragePercent = (diff / uniPrice) * 100;
-              }
-
-              if (arbitragePercent >= 2) {
-                $(`.uniswapPer-${msg.id}`).html(`<img src="https://sushi.com/static/media/logo.dec926df.png" width="20"/>${arbitragePercent}`)
-                $(`#${msg.unipairId}`).show()
-              } else if (-2 >= arbitragePercent) {
-                let arbitragePercent2 = arbitragePercent.toString()
-                arbitragePercent = arbitragePercent2.replace("-", "")
-                $(`.uniswapPer-${msg.id}`).html(`<img src="https://v2.info.uniswap.org/static/media/logo_white.edb44e56.svg" width="20"/>${arbitragePercent}`)
-                $(`#${msg.unipairId}`).show()
-              } else {
-                $(`#${msg.unipairId}`).hide()
-              }
-
-            });
-          }
+              
+            });           
+          }           
+          
           $('#pricedata').html('')
           $('#pricedata').append(pricedata)
         }
