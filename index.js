@@ -44,7 +44,7 @@ io.use(async (socket, next) => {
           for (let ex = 0; ex < exchanges.length; ex++) {
             new Promise(async (resolve, rejects) => {
               await con.query(
-                `SELECT * FROM m_common_pair where exchange_type = '${exchanges[ex].exchange_type}' ORDER by pair_id DESC limit 1`,
+                `SELECT * FROM m_common_pair where exchange_type = '${exchanges[ex].exchange_type}' ORDER by pair_id DESC`,
                 async (err, exresult) => {
                   if (err) throw err;
                   let i = 0;
@@ -712,7 +712,7 @@ io.use(async (socket, next) => {
                         );
                         let diffExchange = pairTrade.outputAmount.toSignificant(6) - baseOutputtValue[uInputs].usdcInput;
                         let percent = diffExchange/baseOutputtValue[uInputs].usdcInput*100;
-                        otherOutputs.push({exchage:`${baseExchange}->${otherExchange}: (${baseOutputtValue[uInputs].dollarWorth})`, outputValue: pairTrade.outputAmount.toSignificant(6),otherExinput: baseOutputtValue[uInputs].otherExinputValue, BaseInput: baseOutputtValue[uInputs].usdcInput,arbitRange:percent})
+                        otherOutputs.push({exchage:`${baseExchange}(${baseOutputtValue[uInputs].usdcInput})->${otherExchange}(${baseOutputtValue[uInputs].otherExinputValue}): (${baseOutputtValue[uInputs].dollarWorth})`, outputValue: pairTrade.outputAmount.toSignificant(6),otherExinput: baseOutputtValue[uInputs].otherExinputValue, BaseInput: baseOutputtValue[uInputs].usdcInput,arbitRange:percent,baseToken0: baseOutputtValue[uInputs].baseToken0,baseToken1: baseOutputtValue[uInputs].baseToken1})
                       }
   
                     } else if(otherExchange == "UNISWAP") {
@@ -747,7 +747,7 @@ io.use(async (socket, next) => {
                         );
                         let diffExchange = pairTrade.outputAmount.toSignificant(6) - baseOutputtValue[uInputs].usdcInput;
                         let percent = diffExchange/baseOutputtValue[uInputs].usdcInput*100;
-                        otherOutputs.push({exchage:`${baseExchange}->${otherExchange}: (${baseOutputtValue[uInputs].dollarWorth})`, outputValue: pairTrade.outputAmount.toSignificant(6),otherExinput: baseOutputtValue[uInputs].otherExinputValue, BaseInput: baseOutputtValue[uInputs].usdcInput,arbitRange:percent,baseToken0: baseOutputtValue[uInputs].baseToken0,baseToken1: baseOutputtValue[uInputs].baseToken1})
+                        otherOutputs.push({exchage:`${baseExchange}(${baseOutputtValue[uInputs].usdcInput})->${otherExchange}(${baseOutputtValue[uInputs].otherExinputValue}): (${baseOutputtValue[uInputs].dollarWorth})`, outputValue: pairTrade.outputAmount.toSignificant(6),otherExinput: baseOutputtValue[uInputs].otherExinputValue, BaseInput: baseOutputtValue[uInputs].usdcInput,arbitRange:percent,baseToken0: baseOutputtValue[uInputs].baseToken0,baseToken1: baseOutputtValue[uInputs].baseToken1})
                       }
   
   
