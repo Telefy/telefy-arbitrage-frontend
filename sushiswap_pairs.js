@@ -62,7 +62,7 @@ const initOld = async () => {
 const init = async () => {
 
   // const token0 = new sushiSdk.Token(1, '0x6b175474e89094c44da98b954eedeac495271d0f', 18) //DAI
-  const token0 = new sushiSdk.Token(1, '0x1337def16f9b486faed0293eb623dc8395dfe46a', 18) //Armor
+  const token0 = new sushiSdk.Token(1, '0x037a54aab062628c9bbae1fdb1583c195585fe41', 18) //Armor
   const token1 = new sushiSdk.Token(1, '0x6b175474e89094c44da98b954eedeac495271d0f', 18) //DAI
 
 
