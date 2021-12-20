@@ -908,7 +908,6 @@ io.use(async (socket, next) => {
             let otherPariAddr = exchanges[j].pairtoken.toString();
             let otherExchange = exchanges[j].name.toString();
             let getExchangeOutput = new Promise((resolve, reject) => {
-              try {
                 let data = "";
                 let config = {
                   method: "get",
@@ -949,8 +948,8 @@ io.use(async (socket, next) => {
                       for(let uInputs = 0; uInputs < baseOutputtValue.length; uInputs++ ){
   
                         let decimalInputValue =
-                        baseOutputtValue[uInputs].otherExinputValue *
-                      10 ** parseInt(pairResponse.data.data.pair.token1.decimals);
+                        (baseOutputtValue[uInputs].otherExinputValue *
+                      10 ** parseInt(pairResponse.data.data.pair.token1.decimals)).toFixed();
   
                         pairTrade = new sushiSdk.Trade(
                           new sushiSdk.Route([pair], token1, token0),
@@ -983,9 +982,9 @@ io.use(async (socket, next) => {
   
                       for(let uInputs = 0; uInputs < baseOutputtValue.length; uInputs++ ){
   
-                          let decimalInputValue =
-                          baseOutputtValue[uInputs].otherExinputValue *
-                        10 ** parseInt(pairResponse.data.data.pair.token1.decimals);
+                        let decimalInputValue =
+                        (baseOutputtValue[uInputs].otherExinputValue *
+                      10 ** parseInt(pairResponse.data.data.pair.token1.decimals)).toFixed();
   
   
                         pairTrade = new uniSdkV2.Trade(
@@ -1007,9 +1006,7 @@ io.use(async (socket, next) => {
                     reject(1);
                   }
                 });
-              } catch (error) {
-                reject(error.stack);
-              }
+              
             });
   
             let getValues = await getExchangeOutput;
