@@ -45,7 +45,7 @@ io.use(async (socket, next) => {
           for (let ex = 0; ex < exchanges.length; ex++) {
             new Promise(async (resolve, rejects) => {
               await con.query(
-                `SELECT * FROM m_common_pair where exchange_id = '${exchanges[ex].exchange_id}' ORDER by pair_id ASC limit 1`,
+                `SELECT * FROM m_common_pair where exchange_id = '${exchanges[ex].exchange_id}' ORDER by pair_id ASC`,
                 async (err, exresult) => {
                   if (err) throw err;
                   let i = 0;
@@ -423,12 +423,13 @@ io.use(async (socket, next) => {
                                 );
 
                                 let inputValue =
-                                  usdcTrade.outputAmount.toSignificant(6) *
+                                  (usdcTrade.outputAmount.toSignificant(6) *
                                   10 **
                                     parseInt(
                                       pairResponse.data.data.pair.token0
                                         .decimals
-                                    );
+                                    )).toFixed();
+                                    inputValue = Number(inputValue).toLocaleString().replace(/,/g,"")
                                 pairTrade = await new uniSdkV2.Trade(
                                   new uniSdkV2.Route([pair], token0, token1),
                                   uniSDK.CurrencyAmount.fromRawAmount(
@@ -504,12 +505,13 @@ io.use(async (socket, next) => {
                                 );
 
                                 let inputValue =
-                                  usdcTrade.outputAmount.toSignificant(6) *
+                                  (usdcTrade.outputAmount.toSignificant(6) *
                                   10 **
                                     parseInt(
                                       pairResponse.data.data.pair.token0
                                         .decimals
-                                    );
+                                    )).toFixed();
+                                inputValue = Number(inputValue).toLocaleString().replace(/,/g,"")
                                 pairTrade = new sushiSdk.Trade(
                                   new sushiSdk.Route([pair], token0, token1),
                                   sushiSdk.CurrencyAmount.fromRawAmount(
@@ -692,14 +694,15 @@ io.use(async (socket, next) => {
                                       );
 
                                       let inputValue =
-                                        wethTrade.outputAmount.toSignificant(
+                                        (wethTrade.outputAmount.toSignificant(
                                           6
                                         ) *
                                         10 **
                                           parseInt(
                                             pairResponse.data.data.pair.token0
                                               .decimals
-                                          );
+                                          )).toFixed();
+                                          inputValue = Number(inputValue).toLocaleString().replace(/,/g,"")
 
                                       pairTrade = await new uniSdkV2.Trade(
                                         new uniSdkV2.Route(
@@ -823,14 +826,15 @@ io.use(async (socket, next) => {
                                       );
 
                                       let inputValue =
-                                        wethTrade.outputAmount.toSignificant(
+                                        (wethTrade.outputAmount.toSignificant(
                                           6
                                         ) *
                                         10 **
                                           parseInt(
                                             pairResponse.data.data.pair.token0
                                               .decimals
-                                          );
+                                          )).toFixed();
+                                        inputValue = Number(inputValue).toLocaleString().replace(/,/g,"")
 
                                       pairTrade = await new sushiSdk.Trade(
                                         new sushiSdk.Route(
@@ -897,7 +901,7 @@ io.use(async (socket, next) => {
         io.sockets.emit(tokenIds,
           allArbitrage
         );
-      }, 10000);
+      }, 30000);
     };
 
     let checkOtherExchange = async (baseOutputtValue,exchanges,baseExchange,baseToken0,baseToken1) => {      
@@ -950,7 +954,13 @@ io.use(async (socket, next) => {
                         let decimalInputValue =
                         (baseOutputtValue[uInputs].otherExinputValue *
                       10 ** parseInt(pairResponse.data.data.pair.token1.decimals)).toFixed();
-  
+
+                      decimalInputValue = Number(decimalInputValue).toLocaleString().replace(/,/g,"")
+                      
+
+                          //console.log(pairResponse.data.data.pair.token1.decimals,"---1")
+                          //console.log(baseOutputtValue[uInputs].otherExinputValue,"---2")
+                          //console.log(pairResponse.data.data.pair.id,"---3")
                         pairTrade = new sushiSdk.Trade(
                           new sushiSdk.Route([pair], token1, token0),
                           sushiSdk.CurrencyAmount.fromRawAmount(token1, decimalInputValue),
@@ -965,7 +975,7 @@ io.use(async (socket, next) => {
                     } else if(otherExchange == "UNISWAP") {
   
                       let token0 = new uniSDK.Token(
-                        1,
+                        1, 
                         pairResponse.data.data.pair.token0.id.toString(),
                         parseInt(pairResponse.data.data.pair.token0.decimals)
                       );
@@ -985,7 +995,8 @@ io.use(async (socket, next) => {
                         let decimalInputValue =
                         (baseOutputtValue[uInputs].otherExinputValue *
                       10 ** parseInt(pairResponse.data.data.pair.token1.decimals)).toFixed();
-  
+                          
+                      decimalInputValue = Number(decimalInputValue).toLocaleString().replace(/,/g,"")
   
                         pairTrade = new uniSdkV2.Trade(
                           new uniSdkV2.Route([pair], token1, token0),
