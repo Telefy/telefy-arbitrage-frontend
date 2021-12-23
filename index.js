@@ -46,7 +46,7 @@ io.use(async (socket, next) => {
           for (let ex = 0; ex < exchanges.length; ex++) {
             new Promise(async (resolve, rejects) => {
               await con.query(
-                `SELECT * FROM m_common_pair where exchange_id = '${exchanges[ex].exchange_id}' and pair_id in ('271') ORDER by pair_id ASC limit 1`,
+                `SELECT * FROM m_common_pair where exchange_id = '${exchanges[ex].exchange_id}' and pair_id in ('266') ORDER by pair_id ASC limit 1`,
                 async (err, exresult) => {
                   if (err) throw err;
                   let i = 0;
@@ -127,240 +127,29 @@ io.use(async (socket, next) => {
             let staticPathArray = ['USDC'];
   
             let modifiedBaseArray = [];
+
+            let fromToken;
+            let toToken;
+            let baseTokensEquals = false;
+            if(baseTokens[staticPathArray[staticPathArray.length-1]].token.toString() == baseInfo.token0){   // USDC == USDC
+              fromToken = baseTokens[staticPathArray[staticPathArray.length-1]].token.toString();
+              toToken = baseInfo.token1;
+              baseTokensEquals = true;
+            } else {
+              fromToken = baseTokens[staticPathArray[staticPathArray.length-1]].token.toString();;
+              toToken = baseInfo.token0;
+              baseTokensEquals = false;
+            }
   
-            let usdcResult = await checkPairExist(staticPathArray[staticPathArray.length-1], baseInfo);
+            let usdcResult = await checkWithGraphAPI(fromToken, toToken,baseInfo);
             if (usdcResult) {
-            // if (0 > 1) {
-              let pairTrade;
-              let usdcInputCoins = ["1000000000", "5000000000", "10000000000"];
-              let usdcInputDollars = ["$1000", "$5000", "$10000"];
-              let baseOutput = [];
-              let usdcReserve0 = usdcResult.usdcReserve0 
-              let usdcReserve1 = usdcResult.usdcReserve1 
-              let reserve0 = usdcResult.reserve0 
-              let reserve1 = usdcResult.reserve1 
-              
-              
-              if (baseInfo.exchange == "UNISWAP") {
+                staticPathArray.push(baseInfo.symbol0)
+                let tradeFunction = await tradecheck(staticPathArray,baseInfo);
 
-                if(baseTokens[staticPathArray[staticPathArray.length-1]].token.toString() == baseInfo.token0.toString()){ // USDC -- USDC
-
-                  let token0 = new uniSDK.Token(
-                    1,
-                    baseInfo.token0.toString(),
-                    parseInt(baseInfo.decimal0)
-                  );
-                  let token1 = new uniSDK.Token(
-                    1,
-                    baseInfo.token1.toString(),
-                    parseInt(baseInfo.decimal1)
-                  );
-      
-                 
-                  
-                  let pair = await new uniSdkV2.Pair(
-                    uniSDK.CurrencyAmount.fromRawAmount(
-                      token0,
-                      reserve0
-                    ),
-                    uniSDK.CurrencyAmount.fromRawAmount(
-                      token1,
-                      reserve1
-                    )
-                  );
-                  for (let uCoin = 0; uCoin < usdcInputCoins.length; uCoin++) {
-                   
-                    pairTrade =  new uniSdkV2.Trade(
-                      new uniSdkV2.Route([pair], token0, token1),
-                      uniSDK.CurrencyAmount.fromRawAmount(token0, usdcInputCoins[uCoin]),
-                      uniSDK.TradeType.EXACT_INPUT
-                    );
-    
-                    baseOutput.push({
-                      usdcInput: usdcInputCoins[uCoin],
-                      otherExinputValue: pairTrade.outputAmount.toSignificant(6),
-                      dollarWorth: usdcInputDollars[uCoin],
-                    });
-                  }
-
-                } else {
-                  
-                  let token0 = new uniSDK.Token(
-                    1,
-                    baseInfo.token0.toString(),
-                    parseInt(baseInfo.decimal0)
-                  );
-                  let token1 = new uniSDK.Token(
-                    1,
-                    baseInfo.token1.toString(),
-                    parseInt(baseInfo.decimal1)
-                  );
-      
-                  let USDC = new uniSDK.Token(
-                    1,
-                    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-                    6
-                  );
-                  
-                  let usdcPair = await new uniSdkV2.Pair(
-                    uniSDK.CurrencyAmount.fromRawAmount(
-                      USDC,
-                      usdcReserve0
-                    ),
-                    uniSDK.CurrencyAmount.fromRawAmount(
-                      token0,
-                      usdcReserve1
-                    )
-                  );
-                  let pair = await new uniSdkV2.Pair(
-                    uniSDK.CurrencyAmount.fromRawAmount(
-                      token0,
-                      reserve0
-                    ),
-                    uniSDK.CurrencyAmount.fromRawAmount(
-                      token1,
-                      reserve1
-                    )
-                  );
-                  for (let uCoin = 0; uCoin < usdcInputCoins.length; uCoin++) {
-                    let usdcTrade = new uniSdkV2.Trade(
-                      new uniSdkV2.Route([usdcPair], USDC, token0),
-                      uniSDK.CurrencyAmount.fromRawAmount(
-                        USDC,
-                        usdcInputCoins[uCoin]
-                      ),
-                      uniSDK.TradeType.EXACT_INPUT
-                    );
-    
-                    let inputValue = (usdcTrade.outputAmount.toSignificant(6) * 10 ** parseInt(baseInfo.decimal0)).toFixed();
-                    inputValue = Number(inputValue).toLocaleString().replace(/,/g,"");
-                    pairTrade =  new uniSdkV2.Trade(
-                      new uniSdkV2.Route([pair], token0, token1),
-                      uniSDK.CurrencyAmount.fromRawAmount(token0, inputValue),
-                      uniSDK.TradeType.EXACT_INPUT
-                    );
-    
-                    baseOutput.push({
-                      usdcInput: usdcTrade.outputAmount.toSignificant(6),
-                      otherExinputValue: pairTrade.outputAmount.toSignificant(6),
-                      dollarWorth: usdcInputDollars[uCoin],
-                    });
-                  }
-                }
-                
-                
-              } else if (baseInfo.exchange == "SUSHISWAP") {
-                if(baseTokens[staticPathArray[staticPathArray.length-1]].token.toString() == baseInfo.token0.toString()){ // USDC -- USDC
-
-                  let token0 = new sushiSdk.Token(
-                    1,
-                    Web3.utils.toChecksumAddress(baseInfo.token0.toString()),
-                    parseInt(baseInfo.decimal0)
-                  );
-                  let token1 = new sushiSdk.Token(
-                    1,
-                    Web3.utils.toChecksumAddress(baseInfo.token1.toString()),
-                    parseInt(baseInfo.decimal1)
-                  );
-              
-                 
-                  
-                  let pair = await new sushiSdk.Pair(
-                    sushiSdk.CurrencyAmount.fromRawAmount(
-                      token0,
-                      reserve0
-                    ),
-                    sushiSdk.CurrencyAmount.fromRawAmount(
-                      token1,
-                      reserve1
-                    )
-                  );
-                  for (let uCoin = 0; uCoin < usdcInputCoins.length; uCoin++) {
-                   
-                    pairTrade =  new sushiSdk.Trade(
-                      new sushiSdk.Route([pair], token0, token1),
-                      sushiSdk.CurrencyAmount.fromRawAmount(token0, usdcInputCoins[uCoin]),
-                      sushiSdk.TradeType.EXACT_INPUT
-                    );
-              
-                    baseOutput.push({
-                      usdcInput: usdcInputCoins[uCoin],
-                      otherExinputValue: pairTrade.outputAmount.toSignificant(6),
-                      dollarWorth: usdcInputDollars[uCoin],
-                    });
-                  }
-              
-                } else {
-                  
-                  let token0 = new sushiSdk.Token(
-                    1,
-                    Web3.utils.toChecksumAddress(baseInfo.token0.toString()),
-                    parseInt(baseInfo.decimal0)
-                  );
-                  let token1 = new sushiSdk.Token(
-                    1,
-                    Web3.utils.toChecksumAddress(baseInfo.token1.toString()),
-                    parseInt(baseInfo.decimal1)
-                  );
-              
-                  let USDC = new sushiSdk.Token(
-                    1,
-                    Web3.utils.toChecksumAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-                    6
-                  );
-                  
-                  let usdcPair = await new sushiSdk.Pair(
-                    sushiSdk.CurrencyAmount.fromRawAmount(
-                      USDC,
-                      usdcReserve0
-                    ),
-                    sushiSdk.CurrencyAmount.fromRawAmount(
-                      token0,
-                      usdcReserve1
-                    )
-                  );
-                  let pair = await new sushiSdk.Pair(
-                    sushiSdk.CurrencyAmount.fromRawAmount(
-                      token0,
-                      reserve0
-                    ),
-                    sushiSdk.CurrencyAmount.fromRawAmount(
-                      token1,
-                      reserve1
-                    )
-                  );
-                  for (let uCoin = 0; uCoin < usdcInputCoins.length; uCoin++) {
-                    let usdcTrade = new sushiSdk.Trade(
-                      new sushiSdk.Route([usdcPair], USDC, token0),
-                      sushiSdk.CurrencyAmount.fromRawAmount(
-                        USDC,
-                        usdcInputCoins[uCoin]
-                      ),
-                      sushiSdk.TradeType.EXACT_INPUT
-                    );
-              
-                    let inputValue = (usdcTrade.outputAmount.toSignificant(6) * 10 ** parseInt(baseInfo.decimal0)).toFixed();
-                    inputValue = Number(inputValue).toLocaleString().replace(/,/g,"");
-                    pairTrade =  new sushiSdk.Trade(
-                      new sushiSdk.Route([pair], token0, token1),
-                      sushiSdk.CurrencyAmount.fromRawAmount(token0, inputValue),
-                      sushiSdk.TradeType.EXACT_INPUT
-                    );
-              
-                    baseOutput.push({
-                      usdcInput: usdcTrade.outputAmount.toSignificant(6),
-                      otherExinputValue: pairTrade.outputAmount.toSignificant(6),
-                      dollarWorth: usdcInputDollars[uCoin],
-                    });
-                  }
-                }
-              }
-              resolve(baseOutput);
-  
             } else {
               modifiedBaseArray = await modifyBaseArray(baseArray, staticPathArray);
               let checkPairpath = await recFunction(staticPathArray, modifiedBaseArray,baseInfo);
-
+              console.log(checkPairpath);
             }
             
 
@@ -375,7 +164,9 @@ io.use(async (socket, next) => {
       // }, 50000);
     };
     
-
+    let tradecheck = async (staticPathArray,baseInfo)=> {
+      console.log(staticPathArray,"----")
+    }
 
       let modifyBaseArray = async (baseArray,staticPathArray) => {
         return new Promise(async(resolve,reject) => {
@@ -391,70 +182,6 @@ io.use(async (socket, next) => {
           resolve(newLayerArr);
         })
       }
-
-
-    let checkPairExist = async (checkToken0,checkToken1) => {
-      return new Promise(async(resolve,reject) => {
-        
-        let postData;
-        if(baseTokens[checkToken0].token.toString() == checkToken1.token0.toString()){   // USDC == USDC 
-  
-           postData = {
-            token0: baseTokens[checkToken0].token, //USDC
-            token1: checkToken1.token1,
-          };
-        } else {
-          postData = {
-            token0: baseTokens[checkToken0].token, //USDC
-            token1: checkToken1.token0,
-          };
-        }
-  
-        let configUsdc = {
-          method: "POST",
-          url: `http://localhost:5000/checkUsdc/${checkToken1.exchange}`,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          data: postData,
-        };
-        axios(configUsdc).then(async (usdcResponse) => {
-          if (usdcResponse.data.data) {
-            let config = {
-              method: "get",
-              url: `http://localhost:5000/${checkToken1.exchange}/pair?pairAddress=${checkToken1.pairId}`, 
-            };
-            axios(config).then(async (pairResponse) => {
-              if (pairResponse.data.data.pair) {
-                let usdcReserve0;
-                let usdcReserve1;
-                if(usdcResponse.data.shuffle == 0){
-                  usdcReserve0 = usdcResponse.data.data.pairs[0].reserve0
-                  usdcReserve1 = usdcResponse.data.data.pairs[0].reserve1
-                } else {
-                  usdcReserve0 = usdcResponse.data.data.pairs[0].reserve1
-                  usdcReserve1 = usdcResponse.data.data.pairs[0].reserve0
-                }
-                let reserve0 = pairResponse.data.data.pair.reserve0
-                let reserve1 = pairResponse.data.data.pair.reserve1
-  
-                resolve({
-                  "usdcReserve0":usdcReserve0, 
-                  "usdcReserve1":usdcReserve1,
-                  "reserve0":reserve0,
-                  "reserve1":reserve1
-                })
-  
-              } else {
-                resolve()
-              }
-            })
-          } else {
-            resolve()
-          }
-        });
-      })
-    }
 
     let recFunction = async (staticPathArray, modifiedBaseArray,baseInfo) => {
       if(modifiedBaseArray.length == 0) return false;
@@ -487,7 +214,7 @@ io.use(async (socket, next) => {
               } 
           
           if(matchedFlag.status && iTokenFlag.status) {
-              staticPathArray.push(modifiedBaseArray[i], baseInfo.token0)
+              staticPathArray.push(modifiedBaseArray[i], baseInfo.symbol0)
               resolve(staticPathArray)
           }
       }
@@ -497,7 +224,7 @@ io.use(async (socket, next) => {
           let innerModifiedBaseArray = await modifyBaseArray(baseArray, staticPathArray)
          const resFn =  await recFunction(staticPathArray, innerModifiedBaseArray,baseInfo);
          if(resFn) {
-             return true;
+          resolve(staticPathArray)
          }
     }
 
@@ -569,7 +296,8 @@ io.use(async (socket, next) => {
             notAvailablePush:false
           });
         } else {
-          const res = await checkWithGraphAPI(fromToken, toToken,baseInfo);
+           toToken = baseTokens[toToken] ? baseTokens[toToken].token.toString() : baseInfo.token0;
+          const res = await checkWithGraphAPI(baseTokens[fromToken].token.toString(), toToken,baseInfo);
           if (res) {
 
             resolve({
@@ -591,12 +319,12 @@ io.use(async (socket, next) => {
 
     let checkWithGraphAPI = async (fromToken, toToken,baseInfo) => {
       return new Promise(async (resolve,reject)=> {
-        
+
+      
         let postData = {
-          token0: baseTokens[fromToken].token.toString(), 
-          token1: (baseTokens[toToken]) ? baseTokens[toToken].token : baseInfo.token0,
-        };
-  
+            token0: fromToken, 
+            token1: toToken,
+          };
         let configUsdc = {
           method: "POST",
           url: `http://localhost:5000/checkUsdc/${baseInfo.exchange}`,
